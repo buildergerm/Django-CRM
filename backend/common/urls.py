@@ -9,11 +9,6 @@ from common.views.app_views import (
 )
 from common.views.attachment_views import AttachmentDownloadView
 from common.views.audit_log_views import SecurityAuditLogListView
-from common.views.registration_views import (
-    AccountSignupRequestView,
-    AccountSignupResendView,
-    AccountSignupVerifyView,
-)
 from common.views.auth_views import (
     AccountRecoveryCompleteResetView,
     AccountRecoveryRequestView,
@@ -33,6 +28,11 @@ from common.views.auth_views import (
     PasswordLoginVerifyCodeView,
     QStashMagicLinkDeliveryView,
     RecoveryLoginVerifyView,
+)
+from common.views.registration_views import (
+    AccountSignupRequestView,
+    AccountSignupResendView,
+    AccountSignupVerifyView,
 )
 from common.views.calendar_feed_views import (
     CalendarFeedView,
