@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import secrets
 import uuid
 from datetime import timedelta
@@ -965,6 +966,57 @@ class MagicLinkRequestView(FirstRefusalThrottleMixin, APIView):
             status=status.HTTP_200_OK,
         )
 
+
+
+class QStashEmailDeliveryView(APIView):
+    """Signed QStash callback for the allowlisted onboarding email tasks."""
+
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        callback_url = os.environ.get("QSTASH_EMAIL_CALLBACK_URL", "").strip()
+        signature = request.headers.get("Upstash-Signature", "")
+        if not callback_url or not verify_signature(signature, request.body, callback_url):
+            return Response(
+                {"error": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+            payload = json.loads(request.body)
+            task_name = payload["task"]
+            args = payload.get("args", [])
+            kwargs = payload.get("kwargs", {})
+            if not isinstance(args, list) or not isinstance(kwargs, dict):
+                raise ValueError("Invalid task arguments")
+        except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+            return Response({"error": "Invalid message"}, status=status.HTTP_400_BAD_REQUEST)
+
+        from common.tasks import (
+            send_organization_ready_email,
+            send_social_password_setup_email,
+            send_welcome_email,
+            send_workspace_security_email,
+        )
+
+        allowed_tasks = {
+            "common.tasks.send_welcome_email": send_welcome_email,
+            "common.tasks.send_organization_ready_email": send_organization_ready_email,
+            "common.tasks.send_workspace_security_email": send_workspace_security_email,
+            "common.tasks.send_social_password_setup_email": send_social_password_setup_email,
+        }
+        task = allowed_tasks.get(task_name)
+        if task is None:
+            return Response({"error": "Unsupported email task"}, status=status.HTTP_400_BAD_REQUEST)
+
+        result = task.apply(args=args, kwargs=kwargs, throw=False)
+        if not result.successful() or result.result is False:
+            logger.error("QStash email task failed: %s", task_name)
+            return Response(
+                {"error": "Email delivery failed"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class QStashMagicLinkDeliveryView(APIView):
