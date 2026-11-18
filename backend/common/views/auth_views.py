@@ -987,7 +987,13 @@ class QStashEmailDeliveryView(APIView):
             task_name = payload["task"]
             args = payload.get("args", [])
             kwargs = payload.get("kwargs", {})
-            if not isinstance(args, list) or not isinstance(kwargs, dict):
+            if (
+                not isinstance(task_name, str)
+                or not isinstance(args, list)
+                or not all(isinstance(value, str) for value in args)
+                or not isinstance(kwargs, dict)
+                or kwargs
+            ):
                 raise ValueError("Invalid task arguments")
         except (ValueError, TypeError, KeyError, json.JSONDecodeError):
             return Response({"error": "Invalid message"}, status=status.HTTP_400_BAD_REQUEST)
