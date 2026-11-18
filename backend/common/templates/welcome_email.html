@@ -1,15 +1,17 @@
-{% extends "root_email_template_new.html" %}
-
-{% block preheader %}Welcome to Godan CRM. Your workspace is ready to get started.{% endblock preheader %}
-
-{% block heading %}Welcome to Godan CRM{% endblock heading %}
-
+{% extends 'root_email_template_new.html' %}
+{% block preheader %}Your Godan CRM account is ready. Create your first workspace in minutes.{% endblock %}
+{% block heading %}Welcome to Godan CRM, {{ name }}{% endblock %}
 {% block content_body %}
-<p style="margin:0;">Your account has been created. You can now set up your organization and start managing your contacts, deals, projects, and customer relationships in one place.</p>
-{% endblock content_body %}
-
+<p style="margin:0 0 14px;">Your account is ready. Let’s get your first organization set up so you can bring your customer work into one place.</p>
+<h3 style="margin:22px 0 8px;color:#101828;font-size:16px;">Create your first organization</h3>
+<ol style="margin:0;padding-left:22px;color:#475467;">
+  <li style="padding:0 0 8px;">Sign in to Godan CRM.</li>
+  <li style="padding:0 0 8px;">Open Organizations and choose <strong>Create organization</strong>.</li>
+  <li style="padding:0 0 8px;">Enter your organization name and save.</li>
+  <li style="padding:0 0 8px;">Complete your company profile, invite teammates, and configure your workspace.</li>
+</ol>
+<p style="margin:18px 0 0;">You can add contacts, accounts, leads, opportunities, projects, and support tickets as your team is ready.</p>
+{% endblock %}
 {% block button_link %}
-{% if url %}
-<a class="btn-link" href="{{ url }}" style="display:inline-block;padding:15px 28px;background-color:#0F766E;color:#ffffff;text-decoration:none;border-radius:9px;font-size:15px;font-weight:700;line-height:1.2;">Open Godan CRM</a>
-{% endif %}
-{% endblock button_link %}
+<a class="btn-link" href="{{ org_url }}">Create your organization</a>
+{% endblock %}

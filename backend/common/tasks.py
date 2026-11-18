@@ -64,38 +64,197 @@ def clear_rls_context():
 
 @shared_task
 def send_welcome_email(user_id):
-    """Send welcome email to newly created users."""
+    """Send the first-run guide to a newly created user."""
     user_obj = User.objects.filter(id=user_id).first()
     if not user_obj:
-        return
+        return False
 
-    email = user_obj.email.strip()
+    email = (user_obj.email or "").strip()
     try:
         validate_email(email)
     except ValidationError:
         logger.warning("Welcome email skipped: invalid email for user %s", user_id)
-        return
+        return False
 
-    context = {"url": frontend_url("/")}
-    subject = "Welcome to Godan CRM"
+    dashboard_url = frontend_url("/")
+    org_url = frontend_url("/org")
+    context = {
+        "name": user_obj.name or email.split("@", 1)[0],
+        "dashboard_url": dashboard_url,
+        "org_url": org_url,
+    }
     html_content = render_to_string("welcome_email.html", context=context)
-
+    text_content = (
+        f"Welcome to Godan CRM, {context['name']}. Your account is ready.\n\n"
+        "To create your first organization:\n"
+        "1. Sign in to Godan CRM.\n"
+        "2. Open Organizations and choose Create organization.\n"
+        "3. Enter your organization name and save.\n"
+        "4. Complete your company profile, invite teammates, and configure your workspace.\n\n"
+        f"Get started: {org_url}\n"
+        f"Open your dashboard: {dashboard_url}"
+    )
     msg = EmailMultiAlternatives(
-        subject,
-        (
-            "Welcome to Godan CRM. Your account has been created. "
-            "Set up your organization and manage contacts, deals, projects, "
-            f"and customer relationships: {frontend_url('/')}"
-        ),
+        "Welcome to Godan CRM — let's set up your workspace",
+        text_content,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[email],
     )
     msg.attach_alternative(html_content, "text/html")
     msg.extra_headers = {"Idempotency-Key": f"welcome-user-{user_id}"}
     try:
-        msg.send()
+        sent = msg.send()
+        if not sent:
+            logger.error("Email backend did not send welcome email for user %s", user_id)
+        return bool(sent)
     except (ClientError, OSError, RequestException):
         logger.exception("Failed to send welcome email for user %s", user_id)
+        return False
+
+
+@shared_task
+def send_organization_ready_email(user_id, org_id):
+    """Congratulate the creator and confirm their workspace is ready."""
+    user_obj = User.objects.filter(id=user_id).first()
+    org_obj = Org.objects.filter(id=org_id).first()
+    if not user_obj or not org_obj:
+        return False
+    email = (user_obj.email or "").strip()
+    try:
+        validate_email(email)
+    except ValidationError:
+        logger.warning("Organization email skipped: invalid user email for %s", user_id)
+        return False
+
+    workspace_url = frontend_url("/")
+    context = {
+        "name": user_obj.name or email.split("@", 1)[0],
+        "org_name": org_obj.name or "your organization",
+        "workspace_url": workspace_url,
+    }
+    html_content = render_to_string("organization_ready_email.html", context=context)
+    text_content = (
+        f"Congratulations, {context['name']}! {context['org_name']} is ready in Godan CRM.\n\n"
+        "Your workspace is ready to use. Next, add your company details, invite teammates, "
+        "create your first contacts and leads, and review workspace settings.\n\n"
+        f"Open your workspace: {workspace_url}"
+    )
+    msg = EmailMultiAlternatives(
+        f"{context['org_name']} is ready — congratulations!",
+        text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[email],
+    )
+    msg.attach_alternative(html_content, "text/html")
+    msg.extra_headers = {"Idempotency-Key": f"org-ready-{org_id}-{user_id}"}
+    try:
+        sent = msg.send()
+        if not sent:
+            logger.error("Email backend did not send organization-ready email for org %s", org_id)
+        return bool(sent)
+    except (ClientError, OSError, RequestException):
+        logger.exception("Failed to send organization-ready email for org %s", org_id)
+        return False
+
+
+@shared_task
+def send_workspace_security_email(user_id, org_id):
+    """Send practical workspace security and data-quality recommendations."""
+    user_obj = User.objects.filter(id=user_id).first()
+    org_obj = Org.objects.filter(id=org_id).first()
+    if not user_obj or not org_obj:
+        return False
+    email = (user_obj.email or "").strip()
+    try:
+        validate_email(email)
+    except ValidationError:
+        logger.warning("Security guide skipped: invalid user email for %s", user_id)
+        return False
+
+    workspace_url = frontend_url("/")
+    context = {
+        "name": user_obj.name or email.split("@", 1)[0],
+        "org_name": org_obj.name or "your workspace",
+        "workspace_url": workspace_url,
+    }
+    html_content = render_to_string("workspace_security_email.html", context=context)
+    text_content = (
+        f"Keep {context['org_name']} safe and reliable:\n"
+        "- Require strong, unique passwords and enable multi-factor authentication where available.\n"
+        "- Invite only people who need access and assign the least privilege role they need.\n"
+        "- Remove access promptly when teammates leave.\n"
+        "- Review active sessions, connected apps, API tokens, and the security audit log.\n"
+        "- Keep company details and contact records accurate; avoid duplicate records.\n"
+        "- Back up important data and review exports and integrations regularly.\n\n"
+        f"Open Godan CRM: {workspace_url}\n"
+        f"Security settings: {audit_url}"
+    )
+    msg = EmailMultiAlternatives(
+        f"Protect your {context['org_name']} workspace",
+        text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[email],
+    )
+    msg.attach_alternative(html_content, "text/html")
+    msg.extra_headers = {"Idempotency-Key": f"workspace-security-{org_id}-{user_id}"}
+    try:
+        sent = msg.send()
+        if not sent:
+            logger.error("Email backend did not send security guide for org %s", org_id)
+        return bool(sent)
+    except (ClientError, OSError, RequestException):
+        logger.exception("Failed to send security guide for org %s", org_id)
+        return False
+
+
+@shared_task
+def send_social_password_setup_email(user_id, token):
+    """Send a one-time password setup link to a newly registered Google user.
+
+    The token is generated before dispatch so QStash retries reuse the same
+    message body and Resend idempotency key.
+    """
+    user_obj = User.objects.filter(id=user_id).first()
+    if not user_obj or not user_obj.email:
+        return False
+    email = user_obj.email.strip()
+    try:
+        validate_email(email)
+    except ValidationError:
+        logger.warning("Password setup email skipped: invalid email for user %s", user_id)
+        return False
+
+    setup_url = frontend_url(
+        f"/login/set-password?uid={user_obj.pk}&token={token}"
+    )
+    context = {
+        "name": user_obj.name or email.split("@", 1)[0],
+        "setup_url": setup_url,
+    }
+    html_content = render_to_string("social_password_setup_email.html", context=context)
+    text_content = (
+        f"Hi {context['name']}, your Godan CRM account uses Google sign-in. "
+        "You can add a password as an additional sign-in method using this secure, "
+        f"one-time link: {setup_url}\n\n"
+        "The link expires after the configured password-reset window and becomes "
+        "invalid after it is used. If you did not create this account, ignore this email."
+    )
+    msg = EmailMultiAlternatives(
+        "Add a password to your Godan CRM account",
+        text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[email],
+    )
+    msg.attach_alternative(html_content, "text/html")
+    msg.extra_headers = {"Idempotency-Key": f"social-password-setup-{user_id}"}
+    try:
+        sent = msg.send()
+        if not sent:
+            logger.error("Email backend did not send password setup for user %s", user_id)
+        return bool(sent)
+    except (ClientError, OSError, RequestException):
+        logger.exception("Failed to send password setup email for user %s", user_id)
+        return False
 
 
 @shared_task

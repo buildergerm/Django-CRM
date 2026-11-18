@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import secrets
 import uuid
 from datetime import timedelta
@@ -8,6 +9,9 @@ import requests
 from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer
@@ -32,6 +36,71 @@ from common.throttles import (
 from common.utils import CURRENCY_SYMBOLS, ROLES
 
 logger = logging.getLogger(__name__)
+
+
+class SocialPasswordSetupView(APIView):
+    """Set an initial password using a one-time token emailed at Google signup."""
+
+    permission_classes = []
+    authentication_classes = []
+
+    @extend_schema(
+        tags=["auth"],
+        request=inline_serializer(
+            name="SocialPasswordSetupRequest",
+            fields={
+                "uid": serializers.UUIDField(),
+                "token": serializers.CharField(),
+                "password": serializers.CharField(min_length=12, write_only=True),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="SocialPasswordSetupResponse",
+                fields={"success": serializers.BooleanField()},
+            )
+        },
+    )
+    def post(self, request):
+        uid = request.data.get("uid")
+        token = request.data.get("token")
+        password = request.data.get("password")
+        if not uid or not token or not password:
+            return Response(
+                {"error": "A valid setup link and password are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(password) < 12:
+            return Response(
+                {"error": "Use at least 12 characters for your password."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        generator = PasswordResetTokenGenerator()
+        with transaction.atomic():
+            # Serialize token use: a second concurrent request must observe the
+            # password change and fail token validation instead of racing it.
+            user = User.objects.select_for_update().filter(
+                pk=uid, is_active=True
+            ).first()
+            if not user or not generator.check_token(user, token):
+                return Response(
+                    {"error": "This password setup link is invalid or has expired. Request a new sign-in link and try again."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                validate_password(password, user=user)
+            except DjangoValidationError as exc:
+                return Response(
+                    {"error": list(exc.messages)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user.set_password(password)
+            user.save(update_fields=["password"])
+
+        return Response({"success": True}, status=status.HTTP_200_OK)
 
 
 class AuthOrgSerializer(serializers.Serializer):
@@ -272,9 +341,14 @@ class GoogleOAuthCallbackView(APIView):
         user.save(update_fields=["last_login"])
 
         if created:
-            from common.tasks import send_welcome_email
+            from common.tasks import send_social_password_setup_email, send_welcome_email
 
             dispatch_email_task(send_welcome_email, str(user.id))
+            dispatch_email_task(
+                send_social_password_setup_email,
+                str(user.id),
+                PasswordResetTokenGenerator().make_token(user),
+            )
 
         # Generate JWT tokens (with user info embedded)
         token = OrgAwareRefreshToken.for_user_and_org(user, None)
@@ -396,6 +470,12 @@ class GoogleIdTokenView(APIView):
 
         user.last_login = timezone.now()
         user.save(update_fields=["last_login"])
+
+        if _created:
+            from common.tasks import send_social_password_setup_email, send_welcome_email
+
+            dispatch_email_task(send_welcome_email, str(user.id))
+            dispatch_email_task(send_social_password_setup_email, str(user.id))
 
         # Get user's organizations. Active profiles only: `OrgSwitchView`
         # requires `is_active=True`, so listing a deactivated membership here
@@ -895,6 +975,63 @@ class MagicLinkRequestView(FirstRefusalThrottleMixin, APIView):
             status=status.HTTP_200_OK,
         )
 
+
+
+class QStashEmailDeliveryView(APIView):
+    """Signed QStash callback for the allowlisted onboarding email tasks."""
+
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        callback_url = os.environ.get("QSTASH_EMAIL_CALLBACK_URL", "").strip()
+        signature = request.headers.get("Upstash-Signature", "")
+        if not callback_url or not verify_signature(signature, request.body, callback_url):
+            return Response(
+                {"error": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+            payload = json.loads(request.body)
+            task_name = payload["task"]
+            args = payload.get("args", [])
+            kwargs = payload.get("kwargs", {})
+            if (
+                not isinstance(task_name, str)
+                or not isinstance(args, list)
+                or not all(isinstance(value, str) for value in args)
+                or not isinstance(kwargs, dict)
+                or kwargs
+            ):
+                raise ValueError("Invalid task arguments")
+        except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+            return Response({"error": "Invalid message"}, status=status.HTTP_400_BAD_REQUEST)
+
+        from common.tasks import (
+            send_organization_ready_email,
+            send_social_password_setup_email,
+            send_welcome_email,
+            send_workspace_security_email,
+        )
+
+        allowed_tasks = {
+            "common.tasks.send_welcome_email": send_welcome_email,
+            "common.tasks.send_organization_ready_email": send_organization_ready_email,
+            "common.tasks.send_workspace_security_email": send_workspace_security_email,
+            "common.tasks.send_social_password_setup_email": send_social_password_setup_email,
+        }
+        task = allowed_tasks.get(task_name)
+        if task is None:
+            return Response({"error": "Unsupported email task"}, status=status.HTTP_400_BAD_REQUEST)
+
+        result = task.apply(args=args, kwargs=kwargs, throw=False)
+        if not result.successful() or result.result is False:
+            logger.error("QStash email task failed: %s", task_name)
+            return Response(
+                {"error": "Email delivery failed"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class QStashMagicLinkDeliveryView(APIView):

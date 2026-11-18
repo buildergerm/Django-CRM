@@ -15,6 +15,8 @@ from common.views.auth_views import (
     LogoutView,
     MagicLinkRequestView,
     QStashMagicLinkDeliveryView,
+    QStashEmailDeliveryView,
+    SocialPasswordSetupView,
     MagicLinkVerifyCodeView,
     MagicLinkVerifyView,
     MeView,
@@ -96,10 +98,12 @@ urlpatterns = [
     path("auth/logout/", LogoutView.as_view(), name="logout"),
     # Google OAuth callback with PKCE (secure implementation)
     path("auth/google/callback/", GoogleOAuthCallbackView.as_view()),
+    path("auth/social/set-password/", SocialPasswordSetupView.as_view(), name="social_password_setup"),
     # Google ID token auth for mobile apps
     path("auth/google/", GoogleIdTokenView.as_view(), name="google_id_token"),
     # Magic link (passwordless) authentication
     path("auth/magic-link/deliver/", QStashMagicLinkDeliveryView.as_view(), name="magic_link_delivery"),
+    path("email/deliver/", QStashEmailDeliveryView.as_view(), name="email_delivery"),
     path(
         "auth/magic-link/request/",
         MagicLinkRequestView.as_view(),

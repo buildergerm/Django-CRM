@@ -1,38 +1,48 @@
-"""Best-effort dispatch for email tasks when the Celery broker is unavailable.
-
-Email delivery must not make authentication fail just because the deployment
-has no running broker/worker. When queuing fails, run the task inline as a
-small-deployment fallback. A real Celery worker remains the preferred path.
-"""
+"""QStash-first email dispatch with an inline fallback for small deployments."""
 
 import logging
+import os
+
+from django.conf import settings
+
+from common.qstash_delivery import QStashError, publish_json
 
 logger = logging.getLogger(__name__)
 
 
 def dispatch_email_task(task, *args, **kwargs):
-    """Queue an email task, falling back to synchronous execution.
+    """Publish email work to QStash when configured, otherwise run inline.
 
-    This helper is deliberately limited to email notifications. It should not
-    be used for arbitrary or non-idempotent background work.
+    The QStash callback is restricted to an explicit allowlist in
+    QStashEmailDeliveryView. If publishing is unavailable, the bounded Resend
+    task runs inline so signup does not silently lose the email on deployments
+    without a Celery worker.
     """
-    try:
-        return task.delay(*args, **kwargs)
-    except Exception:
-        logger.warning(
-            "Could not queue email task %s; attempting inline delivery",
-            getattr(task, "name", repr(task)),
-            exc_info=True,
-        )
+    callback_url = os.environ.get("QSTASH_EMAIL_CALLBACK_URL", "").strip()
+    if callback_url and getattr(settings, "QSTASH_TOKEN", ""):
+        try:
+            publish_json(
+                callback_url,
+                {
+                    "task": getattr(task, "name", ""),
+                    "args": list(args),
+                    "kwargs": kwargs,
+                },
+                retries=3,
+            )
+            return "queued"
+        except QStashError:
+            logger.warning(
+                "Could not publish email task %s; attempting inline delivery",
+                getattr(task, "name", repr(task)),
+                exc_info=True,
+            )
 
     try:
         return task.apply(args=args, kwargs=kwargs, throw=True)
     except Exception:
-        # Authentication and privacy-preserving request responses should not
-        # be taken down by an optional notification email. The task's own
-        # logger records provider/backend delivery failures as well.
         logger.exception(
-            "Inline email task %s also failed",
+            "Inline email task %s failed",
             getattr(task, "name", repr(task)),
         )
         return None
