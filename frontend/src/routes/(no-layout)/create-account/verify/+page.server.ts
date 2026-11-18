@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { fail, redirect, type Actions } from '@sveltejs/kit';
+import { fail, isRedirect, redirect, type Actions } from '@sveltejs/kit';
 import * as env from '$app/env/private';
 import * as publicEnv from '$app/env/public';
 import { relayHeaders } from '#lib/server/relay.js';
@@ -15,7 +15,7 @@ export const actions:Actions={
    const secure=env.NODE_ENV==='production';cookies.set('jwt_access',r.data.access_token,{...opts(secure),maxAge:86400});cookies.set('jwt_refresh',r.data.refresh_token,{...opts(secure),maxAge:31536000});
    cookies.delete('signup_challenge_id',{path:'/create-account'});cookies.delete('signup_email',{path:'/create-account'});
    throw redirect(303,'/org');
-  }catch(e){if(e&&typeof e==='object'&&'status'in e)throw e;const x=e as{response?:{status?:number;data?:{error?:unknown}}};return fail(x.response?.status||400,{error:typeof x.response?.data?.error==='string'?x.response.data.error:'We could not verify your code. Try again.'});}
+  }catch(e){if(isRedirect(e))throw e;const x=e as{response?:{status?:number;data?:{error?:unknown}}};return fail(400,{error:typeof x.response?.data?.error==='string'?x.response.data.error:'We could not verify your code. Try again.'});}
  },
  resend:async({cookies,getClientAddress,request})=>{
   const id=cookies.get('signup_challenge_id');if(!id)return fail(400,{error:'Your signup session expired. Start again.'});
