@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { fail, redirect, type Actions } from '@sveltejs/kit';
+import { fail, isRedirect, redirect, type Actions } from '@sveltejs/kit';
 import * as env from '$app/env/private';
 import * as publicEnv from '$app/env/public';
 import { relayHeaders } from '#lib/server/relay.js';
@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({cookies}) => { if(cookies.get('jwt_a
 export const actions: Actions = {
  default: async ({request,cookies,getClientAddress}) => {
   const f=await request.formData(); const country=String(f.get('country')||'').toUpperCase();
-  const raw=String(f.get('phone')||'').trim().replace(/[\\s().-]/g,'');
+  const raw=String(f.get('phone')||'').trim().replace(/[\s().-]/g,'');
   const phone=raw.startsWith('+')?raw:`${dial[country]||''}${raw.replace(/^0+/,'')}`;
   const payload={first_name:String(f.get('first_name')||'').trim(),last_name:String(f.get('last_name')||'').trim(),email:String(f.get('email')||'').trim().toLowerCase(),phone,country,organization_name:String(f.get('organization_name')||'').trim(),job_title:String(f.get('job_title')||'').trim(),industry:String(f.get('industry')||'').trim(),employee_count:String(f.get('employee_count')||'').trim(),website:String(f.get('website')||'').trim(),business_description:String(f.get('business_description')||'').trim(),password:String(f.get('password')||''),confirm_password:String(f.get('confirm_password')||''),accept_terms:f.get('accept_terms')==='on',accept_privacy:f.get('accept_privacy')==='on',marketing_consent:f.get('marketing_consent')==='on'};
   try {
@@ -19,9 +19,10 @@ export const actions: Actions = {
    cookies.set('signup_challenge_id',r.data.challenge_id,opts); cookies.set('signup_email',r.data.email||payload.email,opts);
    throw redirect(303,'/create-account/verify');
   } catch(e) {
-   if(e && typeof e==='object' && 'status' in e) throw e;
+   if (isRedirect(e)) throw e;
    const x=e as {response?:{status?:number;data?:{error?:unknown}}};
-   return fail(x.response?.status||400,{error:typeof x.response?.data?.error==='string'?x.response.data.error:'We could not start your registration. Check your details and try again.'});
+   const message = typeof x.response?.data?.error === 'string' ? x.response.data.error : 'We could not start your registration. Please check your details and try again.';
+   return fail(400, { error: message });
   }
  }
 };
