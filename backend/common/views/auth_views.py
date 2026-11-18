@@ -449,12 +449,6 @@ class GoogleIdTokenView(APIView):
             },
         )
 
-        if _created:
-            from common.tasks import send_social_password_setup_email, send_welcome_email
-
-            dispatch_email_task(send_welcome_email, str(user.id))
-            dispatch_email_task(send_social_password_setup_email, str(user.id))
-
         if not user.is_active:
             audit_log.login_failure(email, "account_disabled", request)
             return _disabled_account_response()
@@ -466,6 +460,12 @@ class GoogleIdTokenView(APIView):
 
         user.last_login = timezone.now()
         user.save(update_fields=["last_login"])
+
+        if _created:
+            from common.tasks import send_social_password_setup_email, send_welcome_email
+
+            dispatch_email_task(send_welcome_email, str(user.id))
+            dispatch_email_task(send_social_password_setup_email, str(user.id))
 
         # Get user's organizations. Active profiles only: `OrgSwitchView`
         # requires `is_active=True`, so listing a deactivated membership here
