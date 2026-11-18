@@ -45,10 +45,10 @@ const jwt = (claims: Record<string, unknown>) =>
   ['h', Buffer.from(JSON.stringify(claims)).toString('base64url'), 's'].join('.');
 const hourFromNow = () => Math.floor(Date.now() / 1000) + 3600;
 
-function event(jar: Record<string, string>) {
+function event(jar: Record<string, string>, pathname = '/login') {
   return {
-    url: new URL('http://app.test/login'),
-    request: new Request('http://app.test/login', { headers: { 'user-agent': BROWSER } }),
+    url: new URL(`http://app.test${pathname}`),
+    request: new Request(`http://app.test${pathname}`, { headers: { 'user-agent': BROWSER } }),
     route: { id: '/(no-layout)/login' },
     locals: {},
     cookies: {
@@ -72,6 +72,17 @@ beforeEach(() => {
 
 afterEach(() => {
   setRelaySecret(undefined);
+});
+
+describe('public account registration routes', () => {
+  it.each(['/create-account', '/create-account/verify'])(
+    'allows unauthenticated visitors to reach %s',
+    async (pathname) => {
+      const response = await handle({ event: event({}, pathname), resolve });
+      expect(response).toBeInstanceOf(Response);
+      expect(response.status).toBe(200);
+    }
+  );
 });
 
 describe('hooks.server.ts relays the visitor', () => {
