@@ -70,31 +70,36 @@ class SocialPasswordSetupView(APIView):
                 {"error": "A valid setup link and password are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        user = User.objects.filter(pk=uid, is_active=True).first()
-        generator = PasswordResetTokenGenerator()
-        if not user or not generator.check_token(user, token):
-            return Response(
-                {"error": "This password setup link is invalid or has expired. Request a new sign-in link and try again."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         if len(password) < 12:
             return Response(
                 {"error": "Use at least 12 characters for your password."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            validate_password(password, user=user)
-        except DjangoValidationError as exc:
-            return Response(
-                {"error": list(exc.messages)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        generator = PasswordResetTokenGenerator()
+        with transaction.atomic():
+            # Serialize token use: a second concurrent request must observe the
+            # password change and fail token validation instead of racing it.
+            user = User.objects.select_for_update().filter(
+                pk=uid, is_active=True
+            ).first()
+            if not user or not generator.check_token(user, token):
+                return Response(
+                    {"error": "This password setup link is invalid or has expired. Request a new sign-in link and try again."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        user.set_password(password)
-        user.save(update_fields=["password"])
+            try:
+                validate_password(password, user=user)
+            except DjangoValidationError as exc:
+                return Response(
+                    {"error": list(exc.messages)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user.set_password(password)
+            user.save(update_fields=["password"])
+
         return Response({"success": True}, status=status.HTTP_200_OK)
 
 
