@@ -208,10 +208,12 @@ def send_workspace_security_email(user_id, org_id):
 
 
 @shared_task
-def send_social_password_setup_email(user_id):
-    """Send a one-time password setup link to a newly registered Google user."""
-    from django.contrib.auth.tokens import PasswordResetTokenGenerator
+def send_social_password_setup_email(user_id, token):
+    """Send a one-time password setup link to a newly registered Google user.
 
+    The token is generated before dispatch so QStash retries reuse the same
+    message body and Resend idempotency key.
+    """
     user_obj = User.objects.filter(id=user_id).first()
     if not user_obj or not user_obj.email:
         return False
@@ -222,7 +224,6 @@ def send_social_password_setup_email(user_id):
         logger.warning("Password setup email skipped: invalid email for user %s", user_id)
         return False
 
-    token = PasswordResetTokenGenerator().make_token(user_obj)
     setup_url = frontend_url(
         f"/login/set-password?uid={user_obj.pk}&token={token}"
     )
