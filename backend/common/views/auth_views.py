@@ -339,7 +339,11 @@ class GoogleOAuthCallbackView(APIView):
             from common.tasks import send_social_password_setup_email, send_welcome_email
 
             dispatch_email_task(send_welcome_email, str(user.id))
-            dispatch_email_task(send_social_password_setup_email, str(user.id))
+            dispatch_email_task(
+                send_social_password_setup_email,
+                str(user.id),
+                PasswordResetTokenGenerator().make_token(user),
+            )
 
         # Generate JWT tokens (with user info embedded)
         token = OrgAwareRefreshToken.for_user_and_org(user, None)
