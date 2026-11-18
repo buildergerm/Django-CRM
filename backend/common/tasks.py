@@ -208,6 +208,55 @@ def send_workspace_security_email(user_id, org_id):
 
 
 @shared_task
+def send_social_password_setup_email(user_id):
+    """Send a one-time password setup link to a newly registered Google user."""
+    from django.contrib.auth.tokens import PasswordResetTokenGenerator
+
+    user_obj = User.objects.filter(id=user_id).first()
+    if not user_obj or not user_obj.email:
+        return False
+    email = user_obj.email.strip()
+    try:
+        validate_email(email)
+    except ValidationError:
+        logger.warning("Password setup email skipped: invalid email for user %s", user_id)
+        return False
+
+    token = PasswordResetTokenGenerator().make_token(user_obj)
+    setup_url = frontend_url(
+        f"/login/set-password?uid={user_obj.pk}&token={token}"
+    )
+    context = {
+        "name": user_obj.name or email.split("@", 1)[0],
+        "setup_url": setup_url,
+    }
+    html_content = render_to_string("social_password_setup_email.html", context=context)
+    text_content = (
+        f"Hi {context['name']}, your Godan CRM account uses Google sign-in. "
+        "You can add a password as an additional sign-in method using this secure, "
+        f"one-time link: {setup_url}\n\n"
+        "The link expires after the configured password-reset window and becomes "
+        "invalid after it is used. If you did not create this account, ignore this email."
+    )
+    msg = EmailMultiAlternatives(
+        "Add a password to your Godan CRM account",
+        text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[email],
+    )
+    msg.attach_alternative(html_content, "text/html")
+    msg.extra_headers = {"Idempotency-Key": f"social-password-setup-{user_id}"}
+    try:
+        sent = msg.send()
+        if not sent:
+            logger.error("Email backend did not send password setup for user %s", user_id)
+        return bool(sent)
+    except (ClientError, OSError, RequestException):
+        logger.exception("Failed to send password setup email for user %s", user_id)
+        return False
+
+
+@shared_task
 def send_magic_link_email(token_id, raw_code=None):
     """Send a magic-link or OTP-code email for passwordless authentication.
 
