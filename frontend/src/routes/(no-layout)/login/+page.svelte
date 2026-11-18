@@ -149,8 +149,6 @@
           </button>
         </form>
 
-        <p class="v2-auth-signup-link">New to Godan? <a href="/create-account">Create an account</a></p>
-
         <div class="v2-auth-divider">or continue with</div>
 
         {#if data.google_url}
@@ -170,6 +168,8 @@
           </a>
         {/if}
 
+        <a href="/create-account" class="v2-auth-create-account-button">New to Godan? Create an account</a>
+
         <div class="v2-auth-security-note">
           <ShieldCheck size={16} />
           <span>For your security, we'll email you a one-time verification code after checking your password.</span>
@@ -180,3 +180,35 @@
     </div>
   </section>
 </div>
+
+
+<style>
+  .v2-auth-create-account-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 46px;
+    margin-top: 14px;
+    padding: 12px 16px;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 13px;
+    font-weight: 650;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+
+  .v2-auth-create-account-button:hover {
+    border-color: #93c5fd;
+    background: #bfdbfe;
+  }
+
+  .v2-auth-create-account-button:focus-visible {
+    outline: 3px solid #60a5fa;
+    outline-offset: 2px;
+  }
+</style>
