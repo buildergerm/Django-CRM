@@ -8,6 +8,9 @@ import requests
 from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer
@@ -32,6 +35,60 @@ from common.throttles import (
 from common.utils import CURRENCY_SYMBOLS, ROLES
 
 logger = logging.getLogger(__name__)
+
+
+class SocialPasswordSetupView(APIView):
+    """Set an initial password using a one-time token emailed at Google signup."""
+
+    permission_classes = []
+    authentication_classes = []
+
+    @extend_schema(
+        tags=["auth"],
+        request=inline_serializer(
+            name="SocialPasswordSetupRequest",
+            fields={
+                "uid": serializers.UUIDField(),
+                "token": serializers.CharField(),
+                "password": serializers.CharField(min_length=12, write_only=True),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="SocialPasswordSetupResponse",
+                fields={"success": serializers.BooleanField()},
+            )
+        },
+    )
+    def post(self, request):
+        uid = request.data.get("uid")
+        token = request.data.get("token")
+        password = request.data.get("password")
+        if not uid or not token or not password:
+            return Response(
+                {"error": "A valid setup link and password are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = User.objects.filter(pk=uid, is_active=True).first()
+        generator = PasswordResetTokenGenerator()
+        if not user or not generator.check_token(user, token):
+            return Response(
+                {"error": "This password setup link is invalid or has expired. Request a new sign-in link and try again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            validate_password(password, user=user)
+        except DjangoValidationError as exc:
+            return Response(
+                {"error": list(exc.messages)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(password)
+        user.save(update_fields=["password"])
+        return Response({"success": True}, status=status.HTTP_200_OK)
 
 
 class AuthOrgSerializer(serializers.Serializer):
@@ -272,9 +329,10 @@ class GoogleOAuthCallbackView(APIView):
         user.save(update_fields=["last_login"])
 
         if created:
-            from common.tasks import send_welcome_email
+            from common.tasks import send_social_password_setup_email, send_welcome_email
 
             dispatch_email_task(send_welcome_email, str(user.id))
+            dispatch_email_task(send_social_password_setup_email, str(user.id))
 
         # Generate JWT tokens (with user info embedded)
         token = OrgAwareRefreshToken.for_user_and_org(user, None)
@@ -386,9 +444,10 @@ class GoogleIdTokenView(APIView):
         )
 
         if _created:
-            from common.tasks import send_welcome_email
+            from common.tasks import send_social_password_setup_email, send_welcome_email
 
             dispatch_email_task(send_welcome_email, str(user.id))
+            dispatch_email_task(send_social_password_setup_email, str(user.id))
 
         if not user.is_active:
             audit_log.login_failure(email, "account_disabled", request)
