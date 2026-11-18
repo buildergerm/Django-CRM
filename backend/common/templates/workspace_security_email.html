@@ -1,0 +1,23 @@
+{% extends 'root_email_template_new.html' %}
+{% block preheader %}A few practical steps to keep {{ org_name }} secure and reliable.{% endblock %}
+{% block heading %}Keep your workspace secure{% endblock %}
+{% block content_body %}
+<p style="margin:0 0 16px;">Hi {{ name }}, your {{ org_name }} workspace is ready. These simple habits help protect your team's information and keep your CRM data dependable.</p>
+<h3 style="margin:18px 0 8px;color:#101828;font-size:16px;">Protect access</h3>
+<ul style="margin:0;padding-left:22px;color:#475467;">
+  <li style="padding:0 0 8px;">Use a unique, strong password and enable multi-factor authentication wherever available.</li>
+  <li style="padding:0 0 8px;">Invite only the teammates who need access and give each person the least-privileged role they need.</li>
+  <li style="padding:0 0 8px;">Remove access promptly when a teammate leaves or changes responsibilities.</li>
+  <li style="padding:0 0 8px;">Review active sessions, connected applications, API tokens, and your security audit log regularly.</li>
+</ul>
+<h3 style="margin:18px 0 8px;color:#101828;font-size:16px;">Keep data dependable</h3>
+<ul style="margin:0;padding-left:22px;color:#475467;">
+  <li style="padding:0 0 8px;">Keep customer and company records accurate; merge duplicates instead of creating copies.</li>
+  <li style="padding:0 0 8px;">Review imports, exports, and integrations before sharing sensitive information.</li>
+  <li style="padding:0 0 8px;">Back up important business data and periodically check that your team can access what it needs.</li>
+</ul>
+<p style="margin:16px 0 0;">Godan CRM provides role-based access and an organization audit log to help administrators review important activity. Check your available controls in the workspace.</p>
+{% endblock %}
+{% block button_link %}
+<a class="btn-link" href="{{ workspace_url }}">Review your workspace</a>
+{% endblock %}
