@@ -18,20 +18,20 @@ class TestSocialPasswordSetup:
             {
                 "uid": str(admin_user.pk),
                 "token": token,
-                "password": "A-Long-Unique-Password-2026!",
+                "password": "Violet-Cedar-Orbit-2026!qX",
             },
             format="json",
         )
         assert response.status_code == status.HTTP_200_OK
         admin_user.refresh_from_db()
-        assert admin_user.check_password("A-Long-Unique-Password-2026!")
+        assert admin_user.check_password("Violet-Cedar-Orbit-2026!qX")
 
         replay = unauthenticated_client.post(
             self.url,
             {
                 "uid": str(admin_user.pk),
                 "token": token,
-                "password": "Another-Long-Unique-Password-2026!",
+                "password": "Amber-Comet-Forest-2027!mN",
             },
             format="json",
         )
@@ -43,7 +43,7 @@ class TestSocialPasswordSetup:
             {
                 "uid": str(admin_user.pk),
                 "token": "not-a-valid-token",
-                "password": "A-Long-Unique-Password-2026!",
+                "password": "Violet-Cedar-Orbit-2026!qX",
             },
             format="json",
         )
