@@ -15,6 +15,7 @@ from common.views.auth_views import (
     LogoutView,
     MagicLinkRequestView,
     QStashMagicLinkDeliveryView,
+    QStashEmailDeliveryView,
     SocialPasswordSetupView,
     MagicLinkVerifyCodeView,
     MagicLinkVerifyView,
@@ -102,6 +103,7 @@ urlpatterns = [
     path("auth/google/", GoogleIdTokenView.as_view(), name="google_id_token"),
     # Magic link (passwordless) authentication
     path("auth/magic-link/deliver/", QStashMagicLinkDeliveryView.as_view(), name="magic_link_delivery"),
+    path("email/deliver/", QStashEmailDeliveryView.as_view(), name="email_delivery"),
     path(
         "auth/magic-link/request/",
         MagicLinkRequestView.as_view(),
