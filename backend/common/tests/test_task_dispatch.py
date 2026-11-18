@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.test import override_settings
 
 from common.task_dispatch import dispatch_email_task
