@@ -1,0 +1,17 @@
+{% extends 'root_email_template_new.html' %}
+{% block preheader %}{{ org_name }} is ready. Your Godan CRM workspace is set up.{% endblock %}
+{% block heading %}Your workspace is ready{% endblock %}
+{% block content_body %}
+<p style="margin:0 0 12px;">Congratulations, {{ name }}! <strong>{{ org_name }}</strong> has been created successfully.</p>
+<p style="margin:0 0 16px;">Your Godan CRM workspace is ready. Here are a few useful next steps:</p>
+<ul style="margin:0;padding-left:22px;color:#475467;">
+  <li style="padding:0 0 8px;">Add your company logo, contact details, currency, and timezone.</li>
+  <li style="padding:0 0 8px;">Invite teammates and assign roles that match their responsibilities.</li>
+  <li style="padding:0 0 8px;">Import or create your first customers, contacts, and leads.</li>
+  <li style="padding:0 0 8px;">Set up your sales pipeline, tasks, and support workflow.</li>
+</ul>
+<p style="margin:16px 0 0;">You can return to your workspace at any time and build it out as your team grows.</p>
+{% endblock %}
+{% block button_link %}
+<a class="btn-link" href="{{ workspace_url }}">Open your workspace</a>
+{% endblock %}
