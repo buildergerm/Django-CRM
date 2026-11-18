@@ -390,7 +390,7 @@ export const handle = sequence(
     // answers the same 404 for an unknown, disabled or inactive org. It is NOT
     // `/help`: that prefix is the signed-in user's own support tickets
     // (`(app)/help`), and listing it here would strip the guard from them.
-    const PUBLIC_ROUTES = ['/login', '/logout', '/bounce', '/portal', '/csat', '/help-center'];
+    const PUBLIC_ROUTES = ['/login', '/logout', '/bounce', '/portal', '/csat', '/help-center', '/create-account'];
 
     // Define semi-protected routes (auth required, but no org)
     const AUTH_ONLY_ROUTES = ['/org'];
