@@ -172,12 +172,10 @@ def send_workspace_security_email(user_id, org_id):
         return False
 
     workspace_url = frontend_url("/")
-    audit_url = frontend_url("/settings/security")
     context = {
         "name": user_obj.name or email.split("@", 1)[0],
         "org_name": org_obj.name or "your workspace",
         "workspace_url": workspace_url,
-        "audit_url": audit_url,
     }
     html_content = render_to_string("workspace_security_email.html", context=context)
     text_content = (
