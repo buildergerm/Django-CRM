@@ -78,6 +78,12 @@ class SocialPasswordSetupView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if len(password) < 12:
+            return Response(
+                {"error": "Use at least 12 characters for your password."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             validate_password(password, user=user)
         except DjangoValidationError as exc:
