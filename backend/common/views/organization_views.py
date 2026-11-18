@@ -19,6 +19,8 @@ from common.serializer import (
     ShowOrganizationListSerializer,
 )
 from common.signup_source import clean_signup_source
+from common.task_dispatch import dispatch_email_task
+from common.tasks import send_organization_ready_email, send_workspace_security_email
 from common.utils import ROLES
 
 
@@ -116,6 +118,22 @@ class OrgProfileCreateView(APIView):
             # `is_organization_admin` is derived from `role` in `Profile.save`.
             profile_obj.role = "ADMIN"
             profile_obj.save()
+
+            # Only notify after the organization and its admin membership commit.
+            # QStash/Celery dispatch is best-effort; the API response must not
+            # fail just because an optional email provider is unavailable.
+            from django.db import transaction
+
+            transaction.on_commit(
+                lambda: dispatch_email_task(
+                    send_organization_ready_email, str(request.user.id), str(org_obj.id)
+                )
+            )
+            transaction.on_commit(
+                lambda: dispatch_email_task(
+                    send_workspace_security_email, str(request.user.id), str(org_obj.id)
+                )
+            )
 
             return Response(
                 {
