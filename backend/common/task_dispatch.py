@@ -1,38 +1,27 @@
-"""Best-effort dispatch for email tasks when the Celery broker is unavailable.
+"""Small-deployment email dispatch without requiring a Celery worker.
 
-Email delivery must not make authentication fail just because the deployment
-has no running broker/worker. When queuing fails, run the task inline as a
-small-deployment fallback. A real Celery worker remains the preferred path.
+The hosted free-tier deployment has no always-on worker. Running these bounded,
+idempotent email tasks inline after the database commit ensures welcome and
+onboarding messages are actually attempted. Passwordless sign-in delivery has
+its own QStash callback path; this helper is for ordinary notification emails.
 """
-
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 def dispatch_email_task(task, *args, **kwargs):
-    """Queue an email task, falling back to synchronous execution.
+    """Execute an email task inline so deployments without workers still send.
 
-    This helper is deliberately limited to email notifications. It should not
-    be used for arbitrary or non-idempotent background work.
+    Resend calls have a bounded HTTP timeout and task failures are logged rather
+    than allowed to break account or organization creation. If a dedicated
+    worker is provisioned later, this helper can be switched to queue mode.
     """
-    try:
-        return task.delay(*args, **kwargs)
-    except Exception:
-        logger.warning(
-            "Could not queue email task %s; attempting inline delivery",
-            getattr(task, "name", repr(task)),
-            exc_info=True,
-        )
-
     try:
         return task.apply(args=args, kwargs=kwargs, throw=True)
     except Exception:
-        # Authentication and privacy-preserving request responses should not
-        # be taken down by an optional notification email. The task's own
-        # logger records provider/backend delivery failures as well.
         logger.exception(
-            "Inline email task %s also failed",
+            "Inline email task %s failed",
             getattr(task, "name", repr(task)),
         )
         return None
