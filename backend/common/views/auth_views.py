@@ -385,6 +385,11 @@ class GoogleIdTokenView(APIView):
             },
         )
 
+        if _created:
+            from common.tasks import send_welcome_email
+
+            dispatch_email_task(send_welcome_email, str(user.id))
+
         if not user.is_active:
             audit_log.login_failure(email, "account_disabled", request)
             return _disabled_account_response()
