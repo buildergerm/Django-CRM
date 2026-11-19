@@ -29,18 +29,18 @@ export const actions: Actions = {
     const form = await request.formData();
     let answers: unknown;
     try { answers = JSON.parse(String(form.get('answers') ?? '{}')); }
-    catch { return fail(400, { error: 'Please review your answers and try again.' }); }
+    catch { return fail(400, { saved: false, error: 'Please review your answers and try again.' }); }
     const completed = form.get('completed') === 'true';
     try {
       const response = await axios.patch(publicEnv.PUBLIC_DJANGO_API_URL + '/api/auth/onboarding/', { answers, completed }, {
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }
       });
       if (completed) throw redirect(303, '/org/new');
-      return { saved: Boolean(response.data.saved) };
+      return { saved: Boolean(response.data.saved), error: null };
     } catch (error) {
       if ((error as { status?: number }).status === 303) throw error;
       console.error('Onboarding save failed:', describeError(error));
-      return fail(503, { error: 'We could not save your progress. Please retry.' });
+      return fail(503, { saved: false, error: 'We could not save your progress. Please retry.' });
     }
   }
 };
