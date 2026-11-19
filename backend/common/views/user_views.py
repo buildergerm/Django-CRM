@@ -36,6 +36,10 @@ class OnboardingView(APIView):
 
     permission_classes = (IsAuthenticated,)
     ALLOWED = {"role", "industry", "company_size", "goals", "current_tool", "challenge"}
+    ROLES = {"Founder / business owner", "Sales", "Marketing", "Customer support", "Operations", "Team manager", "Consultant / agency", "Other"}
+    INDUSTRIES = {"Technology / SaaS", "Professional services", "Retail / e-commerce", "Manufacturing", "Financial services", "Healthcare", "Education", "Real estate", "Hospitality", "Non-profit", "Other"}
+    COMPANY_SIZES = {"Just me", "2–5 people", "6–10 people", "11–25 people", "26–50 people", "51–100 people", "100+ people"}
+    GOALS = {"Manage leads", "Grow sales", "Customer relationships", "Customer support", "Invoices & payments", "Team productivity"}
 
     def get(self, request):
         saved = request.user.onboarding_data or {}
@@ -53,12 +57,17 @@ class OnboardingView(APIView):
             if key == "goals":
                 if not isinstance(value, list) or len(value) > 8 or not all(isinstance(v, str) and len(v) <= 80 for v in value):
                     return Response({"error": "Goals must be a list of up to eight choices."}, status=status.HTTP_400_BAD_REQUEST)
+                if any(goal not in self.GOALS for goal in value):
+                    return Response({"error": "Unknown onboarding goal."}, status=status.HTTP_400_BAD_REQUEST)
                 clean[key] = list(dict.fromkeys(value))
             else:
                 limit = 500 if key == "challenge" else 120
                 if not isinstance(value, str) or len(value) > limit:
                     return Response({"error": f"Invalid value for {key}."}, status=status.HTTP_400_BAD_REQUEST)
                 clean[key] = value.strip()
+                choices = {"role": self.ROLES, "industry": self.INDUSTRIES, "company_size": self.COMPANY_SIZES}
+                if key in choices and clean[key] and clean[key] not in choices[key]:
+                    return Response({"error": "Invalid choice for " + key + "."}, status=status.HTTP_400_BAD_REQUEST)
         if completed and not (clean.get("role") and clean.get("industry") and clean.get("company_size") and clean.get("goals")):
             return Response({"error": "Complete the required onboarding answers first."}, status=status.HTTP_400_BAD_REQUEST)
         request.user.onboarding_data = {"answers": clean, "completed": completed}
