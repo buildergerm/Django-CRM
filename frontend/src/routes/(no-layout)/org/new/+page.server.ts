@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
   try {
     const token = cookies.get('jwt_access');
     if (token) {
-      const response = await axios.get(publicEnv.PUBLIC_DJANGO_API_URL + '/api/auth/onboarding/', { headers: { Authorization: 'Bearer ' + token } });
+      const response = await axios.get<{ answers: Record<string, unknown> }>(publicEnv.PUBLIC_DJANGO_API_URL + '/api/auth/onboarding/', { headers: { Authorization: 'Bearer ' + token } });
       onboardingAnswers = response.data.answers ?? {};
     }
   } catch { /* Organization creation remains available if onboarding data cannot be read. */ }
