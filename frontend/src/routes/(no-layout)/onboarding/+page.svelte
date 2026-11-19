@@ -45,7 +45,7 @@
     if (step > 0) {
       const currentStep = step;
       requestAnimationFrame(() => {
-        if (currentStep === step) document.querySelector('.onboard-step')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (currentStep === step) document.querySelector('.onboard-step')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
       });
     }
   });
