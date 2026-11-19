@@ -48,7 +48,7 @@ async function startRecovery(flow: 'login' | 'reset', event: RecoveryStartEvent)
     }
     return { message: response.data.message ?? 'If an active account matches that email, a code will be sent.' };
   } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'status' in error) throw error;
+    if (error && typeof error === 'object' && 'status' in error && !axios.isAxiosError(error)) throw error;
     const failure = axios.isAxiosError<RecoveryStartResponse>(error) ? error : null;
     const message = failure?.response?.data?.error;
     return fail(failure?.response?.status === 429 ? 429 : 400, {
