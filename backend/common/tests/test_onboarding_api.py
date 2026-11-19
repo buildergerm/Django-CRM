@@ -1,8 +1,6 @@
 import pytest
 from rest_framework import status
 
-from common.models import User
-
 
 @pytest.mark.django_db
 class TestOnboardingApi:
@@ -36,7 +34,9 @@ class TestOnboardingApi:
         )
         assert incomplete.status_code == status.HTTP_400_BAD_REQUEST
         invalid = admin_client.patch(
-            self.url, {"answers": {"industry": "Fake Industry"}, "completed": False}, format="json"
+            self.url,
+            {"answers": {"industry": "Fake Industry"}, "completed": False},
+            format="json",
         )
         assert invalid.status_code == status.HTTP_400_BAD_REQUEST
 
