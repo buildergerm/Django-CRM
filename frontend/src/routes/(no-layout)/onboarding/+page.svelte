@@ -73,7 +73,8 @@
     <form method="POST" action="?/save" use:enhance={() => { saving = true; return async ({ result, update }) => { if (result.type === 'success' && result.data?.saved && !finishRequested) { await update({ reset: false }); next(); } else { await update({ reset: false }); } saving = false; finishRequested = false; }; }}>
       <input type="hidden" name="answers" value={JSON.stringify(answers)} />
       <input type="hidden" name="completed" value={finishRequested ? 'true' : 'false'} />
-      {#if data.unavailable}<div class="onboard-error" role="status">We couldn’t load saved onboarding progress right now. You can continue, and we’ll try saving your answers again.</div>{/if}\n      {#if form?.error}<div class="onboard-error" role="alert">{form.error}</div>{/if}
+      {#if data.unavailable}<div class="onboard-error" role="status">We couldn’t load saved onboarding progress right now. You can continue, and we’ll try saving your answers again.</div>{/if}
+      {#if form?.error}<div class="onboard-error" role="alert">{form.error}</div>{/if}
       {#key step}
         <div class="onboard-step" in:fade={{ duration: 180 }} out:fade={{ duration: 120 }} aria-live="polite">
           <h2>{steps[step].title}</h2><p class="step-sub">{steps[step].subtitle}</p>
