@@ -94,6 +94,11 @@ class GetProfileAndOrg:
             "/api/auth/logout/",
             "/api/auth/magic-link/request/",
             "/api/auth/magic-link/verify/",
+            # Account recovery is anonymous before the user has an org or token.
+            "/api/auth/recovery/request-code/",
+            "/api/auth/recovery/resend-code/",
+            "/api/auth/recovery/validate-code/",
+            "/api/auth/recovery/complete-reset/",
         ]
         if request.path in auth_skip_paths:
             return
