@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
       headers: { Authorization: 'Bearer ' + token }
     });
     if (response.data.completed) throw redirect(303, '/org/new');
-    return { answers: response.data.answers ?? {}, completed: false };
+    return { answers: response.data.answers ?? {}, completed: false, unavailable: false };
   } catch (error) {
     if ((error as { status?: number }).status === 303) throw error;
     console.error('Onboarding load failed:', describeError(error));
