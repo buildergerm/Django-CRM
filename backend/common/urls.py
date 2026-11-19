@@ -85,8 +85,8 @@ from common.views.tags_views import (
 )
 from common.views.team_views import TeamsDetailView, TeamsListView
 from common.views.user_views import (
-    OnboardingView,
     GetTeamsAndUsersView,
+    OnboardingView,
     UserDetailView,
     UsersListView,
     UserStatusView,
