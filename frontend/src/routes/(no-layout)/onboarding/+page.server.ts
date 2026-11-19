@@ -4,12 +4,21 @@ import axios from 'axios';
 import { describeError } from '#lib/server/log-safe.js';
 import type { Actions, PageServerLoad } from './$types';
 
+type OnboardingAnswers = {
+  role?: string;
+  industry?: string;
+  company_size?: string;
+  goals?: string[];
+  current_tool?: string;
+  challenge?: string;
+};
+
 export const load: PageServerLoad = async ({ locals, cookies }) => {
   if (!locals.user) throw redirect(303, '/login');
   const token = cookies.get('jwt_access');
   if (!token) throw redirect(303, '/login');
   try {
-    const response = await axios.get<{ answers: Record<string, unknown>; completed: boolean }>(publicEnv.PUBLIC_DJANGO_API_URL + '/api/auth/onboarding/', {
+    const response = await axios.get<{ answers: OnboardingAnswers; completed: boolean }>(publicEnv.PUBLIC_DJANGO_API_URL + '/api/auth/onboarding/', {
       headers: { Authorization: 'Bearer ' + token }
     });
     if (response.data.completed) throw redirect(303, '/org/new');
