@@ -70,7 +70,7 @@ describe('password sign-in request (records the address on the OTP)', () => {
     body.set('email', 'ada@example.com');
     body.set('password', 'Correct-Horse-Battery-42!');
     const request = visit('http://app.test/login', { method: 'POST', body });
-    return login.actions.default({ request, cookies: cookies(), getClientAddress } as any);
+    return ignoringRedirect(() => login.actions.default({ request, cookies: cookies(), getClientAddress } as any));
   };
 
   it('sends the signed visitor address', async () => {
