@@ -17,14 +17,19 @@ def _fresh_throttle_cache():
     cache.clear()
 
 
+@pytest.fixture(autouse=True)
+def password_otp_test_settings():
+    with override_settings(
+        QSTASH_TOKEN="",
+        QSTASH_CALLBACK_URL="",
+        QSTASH_CURRENT_SIGNING_KEY="",
+        QSTASH_NEXT_SIGNING_KEY="",
+        MAGIC_LINK_ENCRYPTION_KEY="",
+    ):
+        yield
+
+
 @pytest.mark.django_db
-@override_settings(
-    QSTASH_TOKEN="",
-    QSTASH_CALLBACK_URL="",
-    QSTASH_CURRENT_SIGNING_KEY="",
-    QSTASH_NEXT_SIGNING_KEY="",
-    MAGIC_LINK_ENCRYPTION_KEY="",
-)
 class TestPasswordOtpLogin:
     request_url = "/api/auth/password/request-code/"
     verify_url = "/api/auth/password/verify-code/"
