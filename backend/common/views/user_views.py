@@ -37,6 +37,31 @@ from opportunity.models import Opportunity
 from opportunity.serializer import OpportunitySerializer
 
 
+class OnboardingAnswersSerializer(serializers.Serializer):
+    role = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    industry = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    company_size = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    goals = serializers.ListField(
+        child=serializers.CharField(max_length=80), required=False
+    )
+    current_tool = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    challenge = serializers.CharField(required=False, allow_blank=True, max_length=500)
+
+
+class OnboardingPatchSerializer(serializers.Serializer):
+    answers = OnboardingAnswersSerializer()
+    completed = serializers.BooleanField()
+
+
+class OnboardingStateSerializer(serializers.Serializer):
+    answers = OnboardingAnswersSerializer()
+    completed = serializers.BooleanField()
+
+
+class OnboardingSavedSerializer(OnboardingStateSerializer):
+    saved = serializers.BooleanField()
+
+
 class OnboardingView(APIView):
     """Private onboarding profile stored against the authenticated user."""
 
@@ -83,6 +108,7 @@ class OnboardingView(APIView):
         "Team productivity",
     }
 
+    @extend_schema(operation_id="auth_onboarding_retrieve", responses=OnboardingStateSerializer)
     def get(self, request):
         saved = request.user.onboarding_data or {}
         return Response(
@@ -92,6 +118,11 @@ class OnboardingView(APIView):
             }
         )
 
+    @extend_schema(
+        operation_id="auth_onboarding_partial_update",
+        request=OnboardingPatchSerializer,
+        responses=OnboardingSavedSerializer,
+    )
     def patch(self, request):
         answers = request.data.get("answers", {})
         completed = request.data.get("completed", False)
