@@ -49,6 +49,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_("email address"), blank=True, unique=True)
     name = models.CharField(_("name"), max_length=255, blank=True, default="")
     profile_pic = models.CharField(max_length=1000, null=True, blank=True)
+    onboarding_data = models.JSONField(default=dict, blank=True)
     activation_key = models.CharField(max_length=150, null=True, blank=True)
     key_expires = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)

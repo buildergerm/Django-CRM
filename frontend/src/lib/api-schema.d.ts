@@ -12639,6 +12639,9 @@ export interface components {
             name: string;
             /** @description IANA timezone (e.g. America/New_York). Sets the org's day. */
             timezone?: string;
+            industry?: string;
+            employee_count?: string;
+            description?: string;
             signup_source?: components["schemas"]["SignupSourceRequest"];
         };
         OrgCreateResponse: {
@@ -12654,6 +12657,9 @@ export interface components {
             name: string;
             /** @description IANA timezone (e.g. America/New_York). Sets the org's day. */
             timezone: string;
+            industry: string;
+            employee_count: string;
+            description: string;
             readonly role: components["schemas"]["ProfileRoleEnum"];
             readonly is_organization_admin: boolean;
         };

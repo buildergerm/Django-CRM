@@ -86,6 +86,7 @@ from common.views.tags_views import (
 from common.views.team_views import TeamsDetailView, TeamsListView
 from common.views.user_views import (
     GetTeamsAndUsersView,
+    OnboardingView,
     UserDetailView,
     UsersListView,
     UserStatusView,
@@ -104,6 +105,7 @@ urlpatterns = [
         name="token_refresh",
     ),
     path("auth/me/", MeView.as_view(), name="me"),
+    path("auth/onboarding/", OnboardingView.as_view(), name="onboarding"),
     path("auth/profile/", ProfileDetailView.as_view(), name="profile_detail"),
     path("auth/switch-org/", OrgSwitchView.as_view(), name="switch_org"),
     path("auth/logout/", LogoutView.as_view(), name="logout"),

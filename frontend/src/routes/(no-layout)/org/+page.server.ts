@@ -50,8 +50,18 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
       role: org.role
     }));
 
+    if (orgs.length === 0) {
+      try {
+        const onboarding = await axios.get<{ completed: boolean }>(apiUrl + '/api/auth/onboarding/', { headers: { Authorization: 'Bearer ' + jwtAccess } });
+        if (!onboarding.data.completed) throw redirect(303, '/onboarding');
+      } catch (error) {
+        if ((error as { status?: number }).status === 303) throw error;
+        // If onboarding state cannot be fetched, leave the organization selector usable.
+      }
+    }
     return { orgs };
   } catch (error) {
+    if ((error as { status?: number }).status === 303) throw error;
     // Never log the raw error: its axios `config.headers` carries the JWT.
     console.error('Error fetching organizations:', describeError(error));
     // Return empty array so user can create a new organization
