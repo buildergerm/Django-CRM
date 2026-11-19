@@ -17,14 +17,19 @@ def clear_throttles():
     cache.clear()
 
 
+@pytest.fixture(autouse=True)
+def recovery_test_settings():
+    with override_settings(
+        QSTASH_TOKEN="",
+        QSTASH_CALLBACK_URL="",
+        QSTASH_CURRENT_SIGNING_KEY="",
+        QSTASH_NEXT_SIGNING_KEY="",
+        MAGIC_LINK_ENCRYPTION_KEY="",
+    ):
+        yield
+
+
 @pytest.mark.django_db
-@override_settings(
-    QSTASH_TOKEN="",
-    QSTASH_CALLBACK_URL="",
-    QSTASH_CURRENT_SIGNING_KEY="",
-    QSTASH_NEXT_SIGNING_KEY="",
-    MAGIC_LINK_ENCRYPTION_KEY="",
-)
 class TestAccountRecovery:
     request_url = "/api/auth/recovery/request-code/"
     validate_url = "/api/auth/recovery/validate-code/"
@@ -62,7 +67,7 @@ class TestAccountRecovery:
     def test_wrong_code_is_reported_and_attempt_counted(
         self, unauthenticated_client, admin_user
     ):
-        response, _ = self.request_code(unauthenticated_client, admin_user)
+        response, code = self.request_code(unauthenticated_client, admin_user)
         token = MagicLinkToken.objects.get(pk=response.data["challenge_id"])
         wrong_code = "000000" if code != "000000" else "000001"
         wrong = unauthenticated_client.post(
