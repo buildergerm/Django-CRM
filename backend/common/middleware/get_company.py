@@ -98,7 +98,7 @@ class GetProfileAndOrg:
             "/api/auth/recovery/request-code/",
             "/api/auth/recovery/resend-code/",
             "/api/auth/recovery/validate-code/",
-            "/api/auth/recovery/complete-reset/",
+            "/api/auth/recovery/reset-password/",
         ]
         if request.path in auth_skip_paths:
             return
