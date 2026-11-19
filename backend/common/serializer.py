@@ -676,10 +676,13 @@ class OrgProfileCreateSerializer(serializers.ModelSerializer):
         # field an installed build does not send would break org creation for
         # them with no server-side fix available. Omitted means UTC, which the
         # admin can change in settings afterwards.
-        fields = ["id", "name", "timezone"]
+        fields = ["id", "name", "timezone", "industry", "employee_count", "description"]
         extra_kwargs = {
             "name": {"required": True},
             "timezone": {"required": False},
+            "industry": {"required": False},
+            "employee_count": {"required": False},
+            "description": {"required": False},
         }
 
     def validate_name(self, name):
