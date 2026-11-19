@@ -69,6 +69,12 @@
           };
         }}
       >
+        <input type="hidden" name="industry" value={String(data.onboardingAnswers?.industry ?? "")} />
+        <input type="hidden" name="employee_count" value={String(data.onboardingAnswers?.company_size ?? "")} />
+        <input type="hidden" name="business_description" value={[...(Array.isArray(data.onboardingAnswers?.goals) ? data.onboardingAnswers.goals : []).map((goal) => "Goal: " + goal), data.onboardingAnswers?.challenge ? "Challenge: " + data.onboardingAnswers.challenge : ""].filter(Boolean).join(" · ")} />
+        {#if data.onboardingAnswers?.industry}
+          <div class="v2-auth-note v2-auth-note-ok" style="margin-bottom:12px">Your onboarding answers have personalized this workspace setup.</div>
+        {/if}
         <div class="v2-field">
           <label for="org_name">Organisation name</label>
           <input
