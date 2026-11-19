@@ -164,6 +164,11 @@ class RequireOrgContext:
         "/schema/",
         "/api/packs/",
         "/api/auth/logout/",
+        # Password recovery is anonymous; users have no org context until login.
+        "/api/auth/recovery/request-code/",
+        "/api/auth/recovery/resend-code/",
+        "/api/auth/recovery/validate-code/",
+        "/api/auth/recovery/complete-reset/",
     ]
 
     # Routes exempt by their resolved, namespaced URL name, for an anonymous
