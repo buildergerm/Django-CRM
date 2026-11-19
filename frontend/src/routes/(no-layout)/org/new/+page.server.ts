@@ -40,7 +40,15 @@ export const load: PageServerLoad = async ({ cookies }) => {
       return [{ name: 'UTC', label: 'UTC' }];
     })
   ]);
-  return { packs, timezones };
+  let onboardingAnswers: Record<string, unknown> = {};
+  try {
+    const token = cookies.get('jwt_access');
+    if (token) {
+      const response = await axios.get(publicEnv.PUBLIC_DJANGO_API_URL + '/api/auth/onboarding/', { headers: { Authorization: 'Bearer ' + token } });
+      onboardingAnswers = response.data.answers ?? {};
+    }
+  } catch { /* Organization creation remains available if onboarding data cannot be read. */ }
+  return { packs, timezones, onboardingAnswers };
 };
 
 /**
@@ -107,6 +115,9 @@ export const actions: Actions = {
         {
           name: orgName.trim(),
           ...(timezone ? { timezone } : {}),
+          ...(typeof formData.get("industry") === "string" && formData.get("industry") ? { industry: String(formData.get("industry")).slice(0, 100) } : {}),
+          ...(typeof formData.get("employee_count") === "string" && formData.get("employee_count") ? { employee_count: String(formData.get("employee_count")).slice(0, 20) } : {}),
+          ...(typeof formData.get("business_description") === "string" && formData.get("business_description") ? { description: String(formData.get("business_description")).slice(0, 2000) } : {}),
           ...(signupSource ? { signup_source: signupSource } : {})
         } satisfies Schemas['OrgCreateBodyRequest'],
         {
