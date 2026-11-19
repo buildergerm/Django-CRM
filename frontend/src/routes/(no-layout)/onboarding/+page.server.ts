@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
   const token = cookies.get('jwt_access');
   if (!token) throw redirect(303, '/login');
   try {
-    const response = await axios.get(publicEnv.PUBLIC_DJANGO_API_URL + '/api/auth/onboarding/', {
+    const response = await axios.get<{ answers: Record<string, unknown>; completed: boolean }>(publicEnv.PUBLIC_DJANGO_API_URL + '/api/auth/onboarding/', {
       headers: { Authorization: 'Bearer ' + token }
     });
     if (response.data.completed) throw redirect(303, '/org/new');
@@ -32,7 +32,7 @@ export const actions: Actions = {
     catch { return fail(400, { saved: false, error: 'Please review your answers and try again.' }); }
     const completed = form.get('completed') === 'true';
     try {
-      const response = await axios.patch(publicEnv.PUBLIC_DJANGO_API_URL + '/api/auth/onboarding/', { answers, completed }, {
+      const response = await axios.patch<{ saved: boolean }>(publicEnv.PUBLIC_DJANGO_API_URL + '/api/auth/onboarding/', { answers, completed }, {
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }
       });
       if (completed) throw redirect(303, '/org/new');
