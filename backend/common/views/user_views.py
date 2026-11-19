@@ -108,8 +108,10 @@ class OnboardingView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             if key == "goals":
-                if not isinstance(value, list) or len(value) > 8 or not all(
-                    isinstance(v, str) and len(v) <= 80 for v in value
+                if (
+                    not isinstance(value, list)
+                    or len(value) > 8
+                    or not all(isinstance(v, str) and len(v) <= 80 for v in value)
                 ):
                     return Response(
                         {"error": "Goals must be a list of up to eight choices."},
