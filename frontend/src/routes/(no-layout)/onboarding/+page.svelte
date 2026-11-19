@@ -2,7 +2,7 @@
   import { enhance } from '$app/forms';
   import { resolve } from '$app/paths';
   import { fade } from 'svelte/transition';
-  import '../../../../app.css';
+  import '../../../app.css';
   import '#lib/v2/styles/v2.css';
   import { ArrowLeft, ArrowRight, Check, Sparkles, HeartHandshake, TrendingUp, Headphones, Receipt, Target, Users, ShieldCheck, CircleCheck } from '@lucide/svelte';
   import imgLogo from '#lib/assets/images/logo.png';
