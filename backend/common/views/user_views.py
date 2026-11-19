@@ -31,6 +31,12 @@ from common.tasks import send_email_user_delete
 from common.utils import COUNTRIES, ROLES
 
 
+from contacts.models import Contact
+from contacts.serializer import ContactSerializer
+from opportunity.models import Opportunity
+from opportunity.serializer import OpportunitySerializer
+
+
 class OnboardingView(APIView):
     """Private onboarding profile stored against the authenticated user."""
 
@@ -73,10 +79,6 @@ class OnboardingView(APIView):
         request.user.onboarding_data = {"answers": clean, "completed": completed}
         request.user.save(update_fields=["onboarding_data"])
         return Response({"saved": True, "answers": clean, "completed": completed})
-from contacts.models import Contact
-from contacts.serializer import ContactSerializer
-from opportunity.models import Opportunity
-from opportunity.serializer import OpportunitySerializer
 
 
 def _valid_token_counts_by_profile(org):
