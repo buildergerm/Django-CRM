@@ -10,8 +10,7 @@
 
   let { data, form }: PageProps = $props();
   type Answers = { role: string; industry: string; company_size: string; goals: string[]; current_tool: string; challenge: string };
-  let answers = $state<Answers>({ role: '', industry: '', company_size: '', goals: [], current_tool: '', challenge: '' });
-  $effect(() => { answers = { role: data.answers?.role ?? '', industry: data.answers?.industry ?? '', company_size: data.answers?.company_size ?? '', goals: data.answers?.goals ?? [], current_tool: data.answers?.current_tool ?? '', challenge: data.answers?.challenge ?? '' }; });
+  let answers = $state<Answers>({ role: data.answers?.role ?? '', industry: data.answers?.industry ?? '', company_size: data.answers?.company_size ?? '', goals: data.answers?.goals ?? [], current_tool: data.answers?.current_tool ?? '', challenge: data.answers?.challenge ?? '' });
   let step = $state(0);
   let saving = $state(false);
   let finishRequested = $state(false);
@@ -80,19 +79,19 @@
           <h2>{steps[step].title}</h2><p class="step-sub">{steps[step].subtitle}</p>
           {#if step === 0}
             <div class="option-grid">
-              {#each roles as role}<button type="button" class="option-card" class:selected={answers.role === role} aria-pressed={answers.role === role} onclick={() => answers.role = role}><span>{role}</span>{#if answers.role === role}<Check size={17}/>{/if}</button>{/each}
+              {#each roles as role (role)}<button type="button" class="option-card" class:selected={answers.role === role} aria-pressed={answers.role === role} onclick={() => answers.role = role}><span>{role}</span>{#if answers.role === role}<Check size={17}/>{/if}</button>{/each}
             </div>
           {:else if step === 1}
             <div class="option-grid">
-              {#each industries as industry}<button type="button" class="option-card" class:selected={answers.industry === industry} aria-pressed={answers.industry === industry} onclick={() => answers.industry = industry}><span>{industry}</span>{#if answers.industry === industry}<Check size={17}/>{/if}</button>{/each}
+              {#each industries as industry (industry)}<button type="button" class="option-card" class:selected={answers.industry === industry} aria-pressed={answers.industry === industry} onclick={() => answers.industry = industry}><span>{industry}</span>{#if answers.industry === industry}<Check size={17}/>{/if}</button>{/each}
             </div>
           {:else if step === 2}
             <div class="option-grid">
-              {#each sizes as size}<button type="button" class="option-card" class:selected={answers.company_size === size} aria-pressed={answers.company_size === size} onclick={() => answers.company_size = size}><span>{size}</span>{#if answers.company_size === size}<Check size={17}/>{/if}</button>{/each}
+              {#each sizes as size (size)}<button type="button" class="option-card" class:selected={answers.company_size === size} aria-pressed={answers.company_size === size} onclick={() => answers.company_size = size}><span>{size}</span>{#if answers.company_size === size}<Check size={17}/>{/if}</button>{/each}
             </div>
           {:else if step === 3}
             <div class="goal-grid">
-              {#each goals as goal}
+              {#each goals as goal (goal.label)}
                 {@const GoalIcon = goal.icon}
                 <button type="button" class="goal-card" class:selected={answers.goals.includes(goal.label)} aria-pressed={answers.goals.includes(goal.label)} onclick={() => toggleGoal(goal.label)}><GoalIcon size={20}/><span class="goal-title">{goal.label}</span><small>{goal.desc}</small>{#if answers.goals.includes(goal.label)}<span class="goal-check"><Check size={14}/></span>{/if}</button>
               {/each}
