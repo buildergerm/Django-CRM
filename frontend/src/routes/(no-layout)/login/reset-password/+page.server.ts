@@ -56,7 +56,7 @@ export const actions: Actions = {
       cookies.delete('recovery_challenge', { path: '/login' });
       throw redirect(303, '/login?reset=success');
     } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'status' in error) throw error;
+      if (error && typeof error === 'object' && 'status' in error && !axios.isAxiosError(error)) throw error;
       const failure = axios.isAxiosError<RecoveryResponse>(error) ? error : null;
       const message = failure?.response?.data?.error;
       return fail(400, { error: typeof message === 'string' ? message : 'Could not reset your password.' });
