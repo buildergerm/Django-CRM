@@ -168,7 +168,7 @@ class RequireOrgContext:
         "/api/auth/recovery/request-code/",
         "/api/auth/recovery/resend-code/",
         "/api/auth/recovery/validate-code/",
-        "/api/auth/recovery/complete-reset/",
+        "/api/auth/recovery/reset-password/",
     ]
 
     # Routes exempt by their resolved, namespaced URL name, for an anonymous
