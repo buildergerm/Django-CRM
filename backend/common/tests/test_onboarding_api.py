@@ -12,7 +12,9 @@ class TestOnboardingApi:
         assert response.data == {"answers": {}, "completed": False}
         assert admin_user.onboarding_data == {}
 
-    def test_partial_answers_are_persisted_and_resumable(self, admin_client, admin_user):
+    def test_partial_answers_are_persisted_and_resumable(
+        self, admin_client, admin_user
+    ):
         answers = {
             "role": "Founder / business owner",
             "industry": "Technology / SaaS",
