@@ -40,6 +40,15 @@
   function next() { if (step < steps.length - 1) step += 1; }
   function back() { if (step > 0) step -= 1; }
   function submitStep() { finishRequested = step === steps.length - 1; }
+
+  $effect(() => {
+    if (step > 0) {
+      const currentStep = step;
+      requestAnimationFrame(() => {
+        if (currentStep === step) document.querySelector('.onboard-step')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  });
 </script>
 
 <svelte:head>
