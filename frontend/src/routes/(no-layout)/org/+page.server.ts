@@ -52,7 +52,7 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 
     if (orgs.length === 0) {
       try {
-        const onboarding = await axios.get(apiUrl + '/api/auth/onboarding/', { headers: { Authorization: 'Bearer ' + jwtAccess } });
+        const onboarding = await axios.get<{ completed: boolean }>(apiUrl + '/api/auth/onboarding/', { headers: { Authorization: 'Bearer ' + jwtAccess } });
         if (!onboarding.data.completed) throw redirect(303, '/onboarding');
       } catch (error) {
         if ((error as { status?: number }).status === 303) throw error;
