@@ -46,6 +46,13 @@ else
 
     echo "Collecting Django static files..."
     python manage.py collectstatic --noinput
+
+    # Optional, temporary bootstrap for the initial Django admin account.
+    # No credentials are printed; the command is idempotent and refuses to elevate existing users.
+    if [ -n "${GODAN_BOOTSTRAP_ADMIN_EMAIL:-}" ] || [ -n "${GODAN_BOOTSTRAP_ADMIN_PASSWORD:-}" ]; then
+        echo "Checking optional Django superuser bootstrap..."
+        python manage.py bootstrap_superuser
+    fi
 fi
 
 echo "Starting application process: $*"
