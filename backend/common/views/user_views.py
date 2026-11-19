@@ -29,6 +29,41 @@ from common.serializer import (
 )
 from common.tasks import send_email_user_delete
 from common.utils import COUNTRIES, ROLES
+
+
+class OnboardingView(APIView):
+    """Private onboarding profile stored against the authenticated user."""
+
+    permission_classes = (IsAuthenticated,)
+    ALLOWED = {"role", "industry", "company_size", "goals", "current_tool", "challenge"}
+
+    def get(self, request):
+        saved = request.user.onboarding_data or {}
+        return Response({"answers": saved.get("answers", {}), "completed": bool(saved.get("completed", False))})
+
+    def patch(self, request):
+        answers = request.data.get("answers", {})
+        completed = request.data.get("completed", False)
+        if not isinstance(answers, dict) or not isinstance(completed, bool):
+            return Response({"error": "Invalid onboarding payload."}, status=status.HTTP_400_BAD_REQUEST)
+        clean = {}
+        for key, value in answers.items():
+            if key not in self.ALLOWED:
+                return Response({"error": "Unknown onboarding field."}, status=status.HTTP_400_BAD_REQUEST)
+            if key == "goals":
+                if not isinstance(value, list) or len(value) > 8 or not all(isinstance(v, str) and len(v) <= 80 for v in value):
+                    return Response({"error": "Goals must be a list of up to eight choices."}, status=status.HTTP_400_BAD_REQUEST)
+                clean[key] = list(dict.fromkeys(value))
+            else:
+                limit = 500 if key == "challenge" else 120
+                if not isinstance(value, str) or len(value) > limit:
+                    return Response({"error": f"Invalid value for {key}."}, status=status.HTTP_400_BAD_REQUEST)
+                clean[key] = value.strip()
+        if completed and not (clean.get("role") and clean.get("industry") and clean.get("company_size") and clean.get("goals")):
+            return Response({"error": "Complete the required onboarding answers first."}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.onboarding_data = {"answers": clean, "completed": completed}
+        request.user.save(update_fields=["onboarding_data"])
+        return Response({"saved": True, "answers": clean, "completed": completed})
 from contacts.models import Contact
 from contacts.serializer import ContactSerializer
 from opportunity.models import Opportunity
